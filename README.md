@@ -224,44 +224,15 @@ poremod run \
  --prefix <output prefix>
 ```
 
-use by docker
+## Authors
 
-```shell
-# input as unaligned bam files
-sample_name=<sample_name>
-bam_dir=<bam_dir>
-ref_file=<ref_file>
-threads=<thread number>
-out_dir=<out_dir>
-docker run -d --rm \
--v $bam_dir:/data/modbams \
--v $(dirname $ref_file):/data/ref \
--v $out_dir:/data/analysis_out \
-poremod:latest \
-poremod run \
- --name $sample_name \
- --dir /data/modbams \
- --ref /data/ref/$(basename $ref_file) \
- --threads $threads \
- --annoDb <hg38 or mm39> \
- --prefix /data/analysis_out/$sample_name
+连明 Ming Lian (lianming@genomics.cn)
 
-# input as an aligned bam file
-sample_name=<sample_name>
-bam=<bam file>
-ref_file=<ref_file>
-out_dir=<out_dir>
-docker run -d --rm \
--v $(dirname $bam):/data/modbams \
--v $(dirname $ref_file):/data/ref \
--v $out_dir:/data/analysis_out \
-poremod:latest \
-poremod run \
- --name $sample_name \
- --bam $bam \
- --ref /data/ref/$(basename $ref_file) \
- --align \
- --threads $threads \
- --annoDb <hg38 or mm39> \
- --prefix /data/analysis_out/$sample_name
-```
+## License and Usage Restrictions
+**Research Use Only**  
+
+This software is provided strictly for individual research purposes. Commercial use is strictly prohibited. This means:  
+**Allowed:** Personal academic research, personal learning, and non-commercial experimentation.  
+**Not Allowed:** Any form of commercial application, distribution, or use that generates revenue directly or indirectly. This includes, but is not limited to, integration into commercial products, offering this software as a service, or using it for commercial gain.  
+
+For commercial licensing or permissions, please contact us.
