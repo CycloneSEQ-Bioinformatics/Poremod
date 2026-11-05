@@ -163,6 +163,19 @@ with its optional `inferred` column and omits them altogether under
 FASTA/FASTQ read IDs must carry modification information in SAMtag style:
 `MM:Z:<mm string> ML:B:C,<comma-separated probabilities>`.
 
+## Command docs
+
+Detailed per-command documentation (arguments, output columns, exit codes,
+edge cases):
+
+- [convert](docs/cli/convert.md) -- drop / merge modification codes
+- [validate](docs/cli/validate.md) -- MM/ML structural validation report
+- [align](docs/cli/align.md) -- mappy alignment to build a modbam
+- [pileup](docs/cli/pileup.md) -- per-site pileup with CpG context annotation
+- [extract](docs/cli/extract.md) -- per-read modification calls as TSV
+- [evaluate](docs/cli/evaluate.md) -- per-read accuracy vs BED ground truth
+- [summarize](docs/cli/summarize.md) -- per-mod-code QC histograms (no ground truth)
+
 ## Authors
 
 连明 Ming Lian (lianming@genomics.cn)
