@@ -1,228 +1,167 @@
 # poremod
 
-A Python package to analyze CycloneSEQ methylation data and produce HTML report
+A high-level base-modification analysis toolkit built on `rust_modbam`:
+a unified command-line interface for the complete modbam workflow —
+modification-type conversion (`convert`), MM/ML structural validation
+(`validate`), mod-tagged re-alignment (`align`), per-site pileup with
+optional CpG context annotation (`pileup`), per-read extraction
+(`extract`), per-read accuracy evaluation (`evaluate`), and detection QC
+histograms (`summarize`).
 
-## Installation
+## Components
 
-Install with a clean environment:
+- `rust_modbam` -- per-read and per-site base-modification extraction
+  from BAM (MM/ML tags), modbam modification-type conversion
+  (`convert`), MM/ML structural validation (`validate`), and raw
+  per-read tag access for re-alignment (`raw_reads`).
 
-```shell
-$ python -m pip install --upgrade pip && pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-$ conda env create -n poremod_env -f environment.yaml
-$ conda activate poremod_env
+## Architecture
 
-# Install from source code
-$ pip install .
-# Or install from compiled wheel file
-$ pip install poremod-x.x.x-py3-none-any.whl
+```mermaid
+flowchart TB
+  CLI["poremod CLI"]
+  PY["poremod (PyO3 + pure Python)"]
+  CORE["poremod_core\n(CpG annotate, eval)"]
+  RMB["rust_modbam\n(core + PyO3)"]
+
+  CLI --> PY
+  PY --> CORE
+  PY --> RMB
+  CORE --> RMB
 ```
 
 ## Usage
 
-To list all available subcommands, run:
- 
+### convert
+
+Convert modification codes (drop / merge; `--drop-mode dist|norm|canonical`,
+default `canonical`):
+
+```bash
+poremod convert --input in.bam --output out.bam --drop h
+poremod convert --input in.bam --output out.bam --drop h --drop-mode dist
+poremod convert --input in.bam --output out.bam --merge mh:m
+poremod convert --input in.bam --output out.bam --drop h --json
 ```
-$ poremod -h
-usage: poremod [-h] {align,make_annoDb,bedMethyl,stats,report,run} ...
 
-A Python package to analyze CycloneSEQ methylation data and produce HTML report
-Version: x.x.x
+Skip-mode rewrite: at most one of the two flags, each combinable with
+`--drop` / `--merge`. `--explicit` writes `?` markers on every output
+segment; `--compress-threshold` drops positions whose every code
+probability is below the threshold. Without any of them the output is
+unchanged apart from the folds.
 
-optional arguments:
-  -h, --help            show this help message and exit
+```bash
+poremod convert --input in.bam --output out.bam --explicit
+poremod convert --input in.bam --output out.bam --compress-threshold 0.8
+```
 
-Commands:
-  {align,make_annoDb,bedMethyl,stats,report,run}
-    align               Align modbam to the reference genome with minimap2
-    make_annoDb         Construct annotation files for key genomic functional regions
-    bedMethyl           Summarise one BAM with modified base tags to bedMethyl
-    stats               Based on the bedMethyl generated in the previous step, the statistics of genome-wide methylation detection results are obtained
-    report              Based on the statistical results obtained from the previous step, generate an HTML report
-    run                 One command to run poremod
+### validate
+
+Validate MM/ML structure. Exit 0 for clean input or warnings only, 1 when
+errors are found. By default the first 10000 records are checked; `--all`
+scans the entire file.
+
+```bash
+poremod validate --input in.bam
+poremod validate --input in.bam --json
+poremod validate --input in.bam --all
 ```
 
 ### align
 
-Align modbam to the reference genome with minimap2
+Build a modbam by re-aligning mod-tagged sequences against a reference.
+Input may be FASTA, FASTQ, or modbam. Exit 2 on input errors, 1 on mappy
+failures.
 
-```
-$ poremod align -h
-usage: poremod align [-h] --bam BAM --ref REF --threads THREADS --prefix PREFIX
+```bash
+poremod align --input reads.fastq --reference ref.fa --output out.bam
 
-optional arguments:
-  -h, --help         show this help message and exit
-  --bam BAM          the modbam file
-  --ref REF          the reference genome file
-  --threads THREADS  set the threads for minimap2
-  --prefix PREFIX    set the output prefix, the output filename would be <prefix>.align.sort.bam
-```
+# Tuning knobs mirror minimap2 CLI names
+poremod align --input reads.fastq --reference ref.fa --output out.bam -k 17 -r 500,10000
 
-for example:
+# --eqx: =/X CIGAR operators instead of M
+poremod align --input reads.fastq --reference ref.fa --output out.bam --eqx
 
-```shell
-poremod align \
- --bam <bam file> \
- --ref <ref fasta file> \
- --threads <thread number> \
- --prefix <output prefix>
+# --secondary=no: suppress 0x100 (secondary) records; 0x800 stay
+poremod align --input reads.fastq --reference ref.fa --output out.bam --secondary=no
 ```
 
-### make_annoDb
+### pileup
 
-Construct annotation files for key genomic functional regions
+Per-site pileup with bedMethyl semantics. `--reference` is required for
+`M`-input on a mapped read and for `--context cpg`; it is optional for
+`=`/`X` input. An unmapped read is skipped because its calls cannot
+become a site.
 
-```
-$ poremod make_annoDb -h
-usage: poremod make_annoDb [-h] --ref REF --gtf GTF --cgi CGI [--upstream UPSTREAM] [--downstream DOWNSTREAM] --prefix PREFIX
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --ref REF             the reference genome file
-  --gtf GTF             the gtf file
-  --cgi CGI             the annotation file for CpG islands (BED file), which needs to be downloaded from the UCSC Table Browser.
-  --upstream UPSTREAM   set the upstream from TSS to define promoter (default: 20000)
-  --downstream DOWNSTREAM
-                        set the downstream from TSS to define promoter (default: 20000)
-  --prefix PREFIX       set the prefix of output files, the output filenames would be <prefix>.promoters.bed.gz, <prefix>.exons.bed.gz ...
+```bash
+poremod pileup --input in.bam --output sites.tsv --reference ref.fa
+poremod pileup --input in.bam --output sites.tsv --reference ref.fa --context cpg
+poremod pileup --input in.bam --output sites.tsv --reference ref.fa --mod-code m
+poremod pileup --input eqx.bam --output sites.tsv
 ```
 
-for example:
+### extract
 
-```shell
-$ poremod make_annoDb \
- --ref <ref fasta file> \
- --gtf <gtf file> \
- --cgi <CpG Island bed file> \
- --prefix <output prefix>
+Per-read modification calls as TSV. `--canonical-base` is required;
+`--reference` is needed unless the CIGAR spells matches with `=`/`X`
+(e.g. `align --eqx` output).
+
+```bash
+poremod extract --input in.bam --output calls.tsv --canonical-base C,A --reference ref.fa
+poremod extract --input eqx.bam --output calls.tsv --canonical-base C
+
+# Cap a large modbam to a random 2000 reads' worth of rows
+poremod extract --input in.bam --output sample.tsv --canonical-base C --reference ref.fa \
+  --sample-reads 2000
 ```
 
-Those interval annotation files can be downloaded from the corresponding databases:
-- `gtf file`: encode or ensembel database
-- `CpG Island bed file`: [UCSC Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables), select the genome of interest, then select "Group" as "Expression and Regulation" or "Regulation" and "Track" as "CpG Islands", finally get outfile file called "\<genome\>.cpgIsland.bed" by setting "Output format" as "BED - browser extensible data" and "Output filename" as "\<genome\>.cpgIsland.bed"
+### evaluate
 
-### bedMethyl
+Score per-read modification calls against a five-column BED ground truth
+(`chrom`, 0-based `start`, `end`, `canonical_base`, `expected_state`).
+`--canonical-base` is required, and GT sites whose column 4 differs are
+skipped.
 
-Summarise one BAM with modified base tags to bedMethyl
-
-```
-$ poremod bedMethyl -h
-usage: poremod bedMethyl [-h] --bam BAM --ref REF [--chrom CHROM] [--start START] [--end END] [--threads THREADS] [--filt] [--combine_strands]
-                         [--force] [--temp] --prefix PREFIX
-
-optional arguments:
-  -h, --help         show this help message and exit
-  --bam BAM          the aligned modbam file
-  --ref REF          the reference genome file
-  --chrom CHROM      chromosome for which to fetch read. If not specified, it includes all primary chromosomes
-  --start START      reference start coordinate. If not specified, the entire chromosome is considered
-  --end END          reference end coordinate. If not specified, the entire chromosome is considered
-  --threads THREADS  set the threads to process multiple chromosomes
-  --filt             filter bedMethyl records without coverage
-  --combine_strands  output additonal bedMethy file, which sum the counts from the positive and negative strands into the counts for the positive
-                     strand position
-  --force            force overwrite if the output file exists
-  --temp             keep temporary files
-  --prefix PREFIX    set the prefix of output filename(s). The output filename(s) would be <prefix>.bedMethyl.gz and
-                     <preffix>.combine_strands.bedMethyl.gz, if add the '--combine_strands' option
+```bash
+poremod evaluate --input in.bam --truth gt.bed --canonical-base C
+poremod evaluate --input in.bam --truth gt.bed --canonical-base C --json
 ```
 
-for example:
+### summarize
 
-```shell
-poremod bedMethyl \
- --bam <bam file> \
- --ref <ref fasta file> \
- --threads <thread number> \
- --combine_strands \
- --force \
- --prefix <output prefix>
+Per-mod-code QC histograms. By default 10000 eligible reads are sampled;
+`--sample-reads 0` keeps all eligible reads, including unmapped ones.
+`--reference` adds site-frequency output.
+
+```bash
+poremod summarize --input in.bam --output qc/
+poremod summarize --input in.bam --output qc/ --reference ref.fa --figure
+poremod summarize --bins qc/bins.tsv --output qc-replot/ --figure
 ```
 
-### stats
+### Read-side `--skip-mode`
 
-Based on the bedMethyl generated in the previous step, the statistics of genome-wide methylation detection results are
+`--skip-mode` decides how positions declared by the `MM` tag but carrying
+no `ML` probability are treated. It is a read-side setting and moves the
+numbers `pileup` reports; it is unrelated to `convert --explicit` and
+`--compress-threshold`, which rewrite `MM`/`ML` in the output BAM.
 
-```shell
-$ poremod stats -h
-usage: poremod stats [-h] --ref REF --infile INFILE --indir INDIR --outdir OUTDIR [--annoDb {hg38,mm39}] [--annoPrefix ANNOPREFIX]
+- `implicit` (default) keeps them as inferred canonical calls with
+  probability 0. They enter `n_canonical` and therefore
+  `n_valid_cov = n_mod + n_canonical + n_other_mod` and the
+  `percent_modified` denominator; a site whose only calls are inferred
+  still produces a row, with `n_mod = 0`.
+- `explicit` drops them. They no longer count towards `n_canonical` or
+  `n_valid_cov`, and a site left without any call disappears from the
+  output entirely.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --ref REF             the reference genome file
-  --infile INFILE       the input bedMethyl file
-  --indir INDIR         the input directory to store bedMethyl files for each chromosomes, which should be the <bedMethy_temp> subfolder under the output directory from the previous step (the bedMethyl
-                        subcommand)
-  --outdir OUTDIR       the output directory
-  --annoDb {hg38,mm39}
-                        using the built-in annotation database. Please choose to set either the --annoDb or --annoPrefix parameter
-  --annoPrefix ANNOPREFIX
-                        set the prefix of annotation database. Please choose to set either the --annoDb or --annoPrefix parameter
-```
+`pileup`, `extract`, and `evaluate` share the same filter, so use one
+value consistently when comparing runs. `extract` marks the affected rows
+with its optional `inferred` column and omits them altogether under
+`explicit`.
 
-for example:
-
-```shell
-$ poremod stats \
- --ref <ref fasta file> \
- --infile <bedMethyl file> \
- --indir <dir> \
- --outdir <outdir> \
- --annoDb <hg38 or mm39>
-
-# or
-$ poremod stats \
- --ref <ref fasta file> \
- --infile <bedMethyl file> \
- --indir <dir> \
- --outdir <outdir> \
- --annoPrefix <annotation prefix>
-```
-
-### run
-
-One command to run poremod
-
-```
-$ poremod run -h
-usage: poremod run [-h] --name NAME [--bam BAM] [--dir DIR] --ref REF [--align] [--threads THREADS] --prefix PREFIX [--annoDb {hg38,mm39}] [--annoPrefix ANNOPREFIX]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --name NAME           the sample name
-  --bam BAM             the unaligned or aligned modbam file
-  --dir DIR             the directory to store unaligned bam files
-  --ref REF             the reference genome file
-  --align               set the alignment status of the provided BAM file(s), defaulting to unaligned (if this parameter is not set), otherwise please set this parameter
-  --threads THREADS     set the thread number for minimap2 and subcommand bedMethyl (default: 16)
-  --prefix PREFIX       set the prefix of output filename(s)
-  --annoDb {hg38,mm39}
-                        using the built-in annotation database. Please choose to set either the --annoDb or --annoPrefix parameter
-  --annoPrefix ANNOPREFIX
-                        set the prefix of annotation database. Please choose to set either the --annoDb or --annoPrefix parameter
-```
-
-for example:
-
-```shell
-# input as unaligned bam files
-poremod run \
- --name <sample name> \
- --dir <bam dir> \
- --ref <ref fasta file> \
- --threads <thread number> \
- --annoDb <hg38 or mm39> \
- --prefix <output prefix>
-
-# input as an aligned bam file
-poremod run \
- --name <sample name> \
- --bam <bam file> \
- --ref <ref fasta file> \
- --align \
- --threads <thread number> \
- --annoPrefix <annotation prefix> \
- --prefix <output prefix>
-```
+FASTA/FASTQ read IDs must carry modification information in SAMtag style:
+`MM:Z:<mm string> ML:B:C,<comma-separated probabilities>`.
 
 ## Authors
 
