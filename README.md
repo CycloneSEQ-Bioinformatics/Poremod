@@ -23,7 +23,8 @@ Requirements:
 - Python >= 3.9
 - Linux x86_64, Linux aarch64, or macOS on Apple Silicon (macOS 11+)
 
-`mappy` and `pysam` are installed as dependencies, and the `poremod`
+The runtime dependencies (`mappy`, `pysam`, `matplotlib`, `jinja2`, `pyyaml`,
+`markdown`, `colorama`) are installed automatically, and the `poremod`
 command becomes available on `PATH`.
 
 **macOS on Apple Silicon with Python 3.9-3.13:** `mappy` ships no macOS
