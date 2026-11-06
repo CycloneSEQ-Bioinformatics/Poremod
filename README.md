@@ -8,6 +8,48 @@ optional CpG context annotation (`pileup`), per-read extraction
 (`extract`), per-read accuracy evaluation (`evaluate`), and detection QC
 histograms (`summarize`).
 
+## Installation
+
+poremod ships as a pre-built wheel. Download the wheel for your platform
+from the [releases page](https://github.com/CycloneSEQ-Bioinformatics/Poremod/releases)
+and install it:
+
+```bash
+pip install poremod-*.whl
+```
+
+Requirements:
+
+- Python >= 3.9
+- Linux x86_64, Linux aarch64, or macOS on Apple Silicon (macOS 11+)
+
+`mappy` and `pysam` are installed as dependencies, and the `poremod`
+command becomes available on `PATH`.
+
+**macOS on Apple Silicon with Python 3.9-3.13:** `mappy` ships no macOS
+arm64 wheel for those interpreters, so pip builds it from source and its
+universal build no longer compiles with the current clang. Build it
+arm64-only:
+
+```bash
+ARCHFLAGS="-arch arm64" pip install poremod-*.whl
+```
+
+Python 3.14 needs no workaround (`mappy` ships an arm64 wheel there).
+
+On Linux the wheel requires glibc 2.28 or newer.
+
+Do not install the standalone `rust-modbam` package alongside poremod --
+the wheel already bundles the `rust_modbam` extension module, and both
+packages ship files under the `rust_modbam/` path.
+
+Check the installation with:
+
+```bash
+poremod --version
+poremod -h
+```
+
 ## Usage
 
 ### convert
