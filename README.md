@@ -218,7 +218,9 @@ edge cases):
 
 ## Authors
 
-连明 Ming Lian (lianming@genomics.cn)
+Ming Lian 连明 (lianming@genomics.cn)
+
+Jiayuan Zhang 张嘉远 (zhangjiayuan@genomics.cn)
 
 ## License and Usage Restrictions
 **Research Use Only**  
