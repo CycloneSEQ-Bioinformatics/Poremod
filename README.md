@@ -10,7 +10,7 @@ histograms (`summarize`).
 
 ## Installation
 
-poremod ships as a pre-built wheel. Download the wheel for your platform
+Distribution is via a pre-built wheel. Download the wheel for your platform
 from the [releases page](https://github.com/CycloneSEQ-Bioinformatics/Poremod/releases)
 and install it:
 
@@ -47,7 +47,7 @@ packages ship files under the `rust_modbam/` path.
 Check the installation with:
 
 ```bash
-poremod --version
+poremod -V
 poremod -h
 ```
 
