@@ -27,6 +27,25 @@ The runtime dependencies (`mappy`, `pysam`, `matplotlib`, `jinja2`, `pyyaml`,
 `markdown`, `colorama`) are installed automatically, and the `poremod`
 command becomes available on `PATH`.
 
+`align` additionally needs `samtools` (>= 1.11) on `PATH` -- it streams
+the alignment through `samtools sort` to write the sorted BAM and its
+`.bai` index in one pass. `samtools` is not a Python package, so install
+it separately:
+
+```bash
+# Debian / Ubuntu
+sudo apt-get install -y samtools
+
+# conda
+conda install -c bioconda samtools
+
+# macOS
+brew install samtools
+```
+
+The other commands (`convert`, `validate`, `pileup`, `extract`,
+`evaluate`, `summarize`) need no external tools.
+
 **macOS on Apple Silicon with Python 3.9-3.13:** `mappy` ships no macOS
 arm64 wheel for those interpreters, so pip builds it from source and its
 universal build no longer compiles with the current clang. Build it
