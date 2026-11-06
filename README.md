@@ -8,28 +8,6 @@ optional CpG context annotation (`pileup`), per-read extraction
 (`extract`), per-read accuracy evaluation (`evaluate`), and detection QC
 histograms (`summarize`).
 
-## Components
-
-- `rust_modbam` -- per-read and per-site base-modification extraction
-  from BAM (MM/ML tags), modbam modification-type conversion
-  (`convert`), MM/ML structural validation (`validate`), and raw
-  per-read tag access for re-alignment (`raw_reads`).
-
-## Architecture
-
-```mermaid
-flowchart TB
-  CLI["poremod CLI"]
-  PY["poremod (PyO3 + pure Python)"]
-  CORE["poremod_core\n(CpG annotate, eval)"]
-  RMB["rust_modbam\n(core + PyO3)"]
-
-  CLI --> PY
-  PY --> CORE
-  PY --> RMB
-  CORE --> RMB
-```
-
 ## Usage
 
 ### convert
