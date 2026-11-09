@@ -74,25 +74,57 @@ poremod -h
 
 ### Modification codes
 
-A modification code names a chemical modification of a base. `poremod` reads
-codes from each read's `MM` tag and reports them in the `mod_code` columns of
-its TSVs (and in `validate`'s `mod_code_counts`). An `MM` segment starts with
-the canonical base, the strand, and the code, followed by its delta list:
+A modbam is a SAM/BAM file that follows the official format definition
+(<https://samtools.github.io/hts-specs/>) and additionally carries two
+standard tags, defined in SAMtags §1.7
+(<https://samtools.github.io/hts-specs/SAMtags.pdf>), that store per-read
+modification calls such as methylation: `MM` (`Z`, the call positions) and
+`ML` (`B:C`, one probability byte per call). A tag pair looks like this:
 
 ```text
-C+m,5,12        one code (m) at two positions
-C+mh,5,12       two codes (m and h) sharing that delta list
-C+21839,0       one ChEBI numeric code
+MM:Z:C+m?,8,8,4,...   ML:B:C,183,171,173,...
 ```
 
-The code part is either one or more single-character codes -- several may be
-combined in one segment (`C+mh`), and each code gets one `ML` probability per
-listed position -- or a ChEBI numeric identifier, which must stand alone in
-its segment. ChEBI codes use their decimal identifier (`21839`, not
-`CHEBI:21839`). The segment's canonical base (`C`, `A`, `G`, `T`; `U` is
-accepted as `T`) fixes the positions it covers. `validate` reports a known
-code used on a different base as `mm_code_base_mismatch`, and a code outside
-the table below as `mm_code_unknown`; both are warnings, not errors.
+Each `MM` segment has the layout `<base><strand><code>[,<delta>...]`;
+segments are separated by `;` (the tag normally ends with one; `poremod` also
+accepts it without the final `;`):
+
+- `base` is the canonical base the modification can sit on: `C`, `A`, `G` or
+  `T` (`U` is accepted as `T`)
+- `strand` is `+` or `-`
+- `code` is one or more single-character modification codes, or one ChEBI
+  numeric identifier
+- each `delta` is the number of bases of that canonical type to skip before
+  the next modified position: the first delta counts from the start of the
+  read (delta `0` is the first such base), and each following delta counts
+  from the position after the previous one
+- a trailing `.` or `?` is the skip marker for the segment's unlisted
+  positions of that canonical base: `?` declares them unknown (no call),
+  while `.` or no marker declares them implicitly unmodified (probability 0)
+
+When one base carries more than one modification type at the same positions,
+both encodings below mean the same thing:
+
+```text
+MM:Z:C+mh.,0;         ML:B:C,200,180    two codes in one segment
+MM:Z:C+m.,0;C+h.,0;   ML:B:C,200,180    one segment per code
+```
+
+`C+mh` lists two codes sharing one delta list. `ML` values are consumed in
+`MM` order -- segment by segment, within a segment position by position, and
+within a position code by code -- so in both encodings `200` is `m`'s
+probability and `180` is `h`'s at the same base.
+
+A modification code names a chemical modification of a base. `poremod` reads
+codes from each read's `MM` tag and reports them in the `mod_code` columns of
+its TSVs (and in `validate`'s `mod_code_counts`). The code part is either one
+or more single-character codes -- several may be combined in one segment
+(`C+mh`) -- or a ChEBI numeric identifier, which must stand alone in its
+segment. ChEBI codes use their decimal identifier (`21839`, not
+`CHEBI:21839`). The segment's canonical base fixes the positions it covers.
+`validate` reports a known code used on a different base as
+`mm_code_base_mismatch`, and a code outside the table below as
+`mm_code_unknown`; both are warnings, not errors.
 
 The 21 supported codes, grouped by canonical base:
 
