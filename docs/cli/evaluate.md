@@ -2,6 +2,8 @@
 
 Per-read accuracy evaluation: realigns every dataset against its own reference, scores the filtered modification calls against a five-column BED ground truth, and prints discrete metrics (Acc, confusion, P/R/F1, specificity) plus ROC/PR AUC. `--output-dir` additionally writes four per-read PNG figures, a metrics TSV and the run log.
 
+Modification codes (including the BED `expected_state` values) are described in the [Modification codes](../../README.md#modification-codes) section of the README.
+
 ## Usage
 
 ```bash

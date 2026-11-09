@@ -5,6 +5,9 @@ the BAM, emit four histograms (the fourth only with a reference FASTA)
 of call quality and methylation frequency. The main artifacts are TSV
 tables; PNG figures are optional and are always drawn from `bins.tsv`.
 
+Modification codes and their display names are described in the
+[Modification codes](../../README.md#modification-codes) section of the README.
+
 ## Usage
 
 ```bash

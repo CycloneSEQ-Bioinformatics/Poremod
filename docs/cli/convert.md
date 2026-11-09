@@ -2,6 +2,8 @@
 
 Modification-type conversion: drop or merge modification codes, or rewrite the per-segment skip-mode layout, in a modbam and write a new modbam.
 
+Modification codes are described in the [Modification codes](../../README.md#modification-codes) section of the README.
+
 ## Usage
 
 ```bash

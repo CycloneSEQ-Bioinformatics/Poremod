@@ -72,6 +72,61 @@ poremod -h
 
 ## Usage
 
+### Modification codes
+
+A modification code names a chemical modification of a base. `poremod` reads
+codes from each read's `MM` tag and reports them in the `mod_code` columns of
+its TSVs (and in `validate`'s `mod_code_counts`). An `MM` segment starts with
+the canonical base, the strand, and the code, followed by its delta list:
+
+```text
+C+m,5,12        one code (m) at two positions
+C+mh,5,12       two codes (m and h) sharing that delta list
+C+21839,0       one ChEBI numeric code
+```
+
+The code part is either one or more single-character codes -- several may be
+combined in one segment (`C+mh`), and each code gets one `ML` probability per
+listed position -- or a ChEBI numeric identifier, which must stand alone in
+its segment. ChEBI codes use their decimal identifier (`21839`, not
+`CHEBI:21839`). The segment's canonical base (`C`, `A`, `G`, `T`; `U` is
+accepted as `T`) fixes the positions it covers. `validate` reports a known
+code used on a different base as `mm_code_base_mismatch`, and a code outside
+the table below as `mm_code_unknown`; both are warnings, not errors.
+
+The 21 supported codes, grouped by canonical base:
+
+| Code | Base | Modification |
+|------|------|--------------|
+| `m` | C | 5-methylcytosine (5mC) |
+| `h` | C | 5-hydroxymethylcytosine (5hmC) |
+| `f` | C | 5-formylcytosine (5fC) |
+| `c` | C | 5-carboxylcytosine (5caC) |
+| `C` | C | any modification of C |
+| `21839` | C | 4-methylcytosine (4mC) |
+| `19228` | C | 2'-O-methylcytosine |
+| `a` | A | 6-methyladenine (6mA) |
+| `A` | A | any modification of A |
+| `17596` | A | inosine |
+| `69426` | A | 2'-O-methyladenosine |
+| `g` | T | 5-hydroxymethyluracil (5hmU) |
+| `e` | T | 5-formyluracil (5fU) |
+| `b` | T | 5-carboxyuracil (5caU) |
+| `T` | T | any modification of T/U |
+| `17802` | T | pseudouridine |
+| `16450` | T | deoxyuridine |
+| `19227` | T | 2'-O-methyluracil |
+| `o` | G | 8-oxoguanine (8oxoG) |
+| `G` | G | any modification of G |
+| `19229` | G | 2'-O-methylguanine |
+
+Codes are accepted by `pileup --mod-code` (restrict output to one code),
+`convert --drop` / `--merge` (fold one code into another), and the
+`expected_state` column of `evaluate`'s BED truth. `summarize` and `extract`
+report every code they see; `summarize`'s `mod_base` column and figures add
+the chemical display name for codes in the table (`m` -> `5mC`, `21839` ->
+`4mC`), while "any" and unlisted codes stay raw.
+
 ### convert
 
 Convert modification codes (drop / merge; `--drop-mode dist|norm|canonical`,

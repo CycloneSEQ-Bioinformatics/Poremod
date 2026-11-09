@@ -2,6 +2,8 @@
 
 Per-site modification statistics (bedMethyl counting semantics, identical to rust_modbam), written as TSV. Sites are kept only where the genomic base matches the modification's canonical base; that base comes from `--reference` when it is given and from each read's CIGAR when it is not (which limits the no-reference route to input whose matches are spelled `=`/`X`, i.e. `M`-free). `--context` is optional CpG labeling: it never drops sites.
 
+Modification codes are described in the [Modification codes](../../README.md#modification-codes) section of the README.
+
 ## Usage
 
 ```bash

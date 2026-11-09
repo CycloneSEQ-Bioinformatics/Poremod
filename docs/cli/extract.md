@@ -2,6 +2,8 @@
 
 Per-read modification-call extraction: writes a TSV of sites whose canonical base is in the requested set, listing every modification code declared at that position and its ML byte quality.
 
+Modification codes are described in the [Modification codes](../../README.md#modification-codes) section of the README.
+
 ## Usage
 
 ```bash

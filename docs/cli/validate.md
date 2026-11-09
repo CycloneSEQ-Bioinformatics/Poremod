@@ -2,6 +2,8 @@
 
 MM/ML structural validation: checks the modification-tag structure of a modbam read by read, and prints a graded report grouped into four layers, to help spot corrupted or malformed modbams before analysis.
 
+Modification codes (including the `mm_code_unknown` and `mm_code_base_mismatch` checks) are described in the [Modification codes](../../README.md#modification-codes) section of the README.
+
 ## Usage
 
 ```bash
