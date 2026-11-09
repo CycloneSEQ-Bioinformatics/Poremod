@@ -181,10 +181,11 @@ poremod summarize --bins qc/bins.tsv --output qc-replot/ --figure
 
 ### Read-side `--skip-mode`
 
-`--skip-mode` decides how positions declared by the `MM` tag but carrying
-no `ML` probability are treated. It is a read-side setting and moves the
-numbers `pileup` reports; it is unrelated to `convert --explicit` and
-`--compress-threshold`, which rewrite `MM`/`ML` in the output BAM.
+`--skip-mode` decides how positions the `MM` tag implies but lists
+without an `ML` probability are treated. It is a read-side setting and
+moves the numbers `pileup` reports; it is unrelated to
+`convert --explicit` and `--compress-threshold`, which rewrite `MM`/`ML`
+in the output BAM.
 
 - `implicit` (default) keeps them as inferred canonical calls with
   probability 0. They enter `n_canonical` and therefore
