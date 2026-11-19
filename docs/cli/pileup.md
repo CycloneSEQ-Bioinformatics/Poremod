@@ -7,7 +7,7 @@ Modification codes are described in the [Modification codes](../../README.md#mod
 ## Usage
 
 ```bash
-poremod pileup --input in.bam --output sites.tsv [--reference ref.fa] [filter args] [--context] [--mod-code m]
+poremod pileup --input in.bam --output sites.tsv [--reference ref.fa] [filter args] [--tag KEY:VALUE ...] [--context] [--mod-code m]
 ```
 
 ## Arguments
@@ -24,6 +24,7 @@ poremod pileup --input in.bam --output sites.tsv [--reference ref.fa] [filter ar
 | `--edge-filter S E` | no | Edge filter (bases to ignore at the start / end of each read) |
 | `--skip-mode {implicit,explicit}` | no | How to treat positions the MM tag implies but lists without an ML probability. A segment whose code part ends in the `?` skip marker marks unlisted positions as no-calls; a `.` there or no marker at all marks them as implicitly canonical. `implicit` (default) keeps the inferred-canonical calls, which count towards `n_canonical` and `n_valid_cov`; `explicit` drops them before aggregation, so a site covered only by inferred calls emits no row and a mixed site loses canonical coverage. It cannot turn a `?` no-call into a canonical call. Read-time filter only -- not the same as `convert --explicit`, which rewrites the BAM's MM tags. |
 | `--exclude-supplementary` | no | Drop supplementary (FLAG 0x800) records; secondary (0x100) records are always dropped regardless of this flag. |
+| `--tag KEY:VALUE` | no | Keep only reads whose aux tags satisfy every condition. Repeatable; conditions on the same `KEY` are OR-ed, different `KEY`s are AND-ed. Integer (`i`/`I`) tags compare numerically (`HP:1` matches `HP:i:1`, and `HP:01` matches too); `A`/`Z` tags compare exactly and case-sensitively; other aux types never match. A read missing any referenced `KEY` is excluded. The filter runs before MM/ML parsing and excludes reads from the `--filter-percentile` estimate. A malformed condition exits 2; a non-numeric `VALUE` against an integer-typed tag fails on the first such record. |
 | `--min-coverage INT` | no | Drop sites below this coverage |
 | `--mod-code CODE` | no | Target modification code (e.g. `m`). Omit to emit every modification (the default). |
 
@@ -115,7 +116,7 @@ created.
 |-----------|----------|
 | 0 | Output written |
 | 1 | Structural MM/ML failure in the input modbam (see `Input validation` above) |
-| 2 | `--reference` omitted where it is needed (`M`-spelled input whose mapped read still carries calls after filtering, or any `--context` run), input not aligned/coordinate-sorted (a non-`coordinate` `@HD` `SO`, or a non-empty file whose every read is unmapped), input/reference missing, output path not writable, invalid filter args or `--mod-code` |
+| 2 | `--reference` omitted where it is needed (`M`-spelled input whose mapped read still carries calls after filtering, or any `--context` run), input not aligned/coordinate-sorted (a non-`coordinate` `@HD` `SO`, or a non-empty file whose every read is unmapped), input/reference missing, output path not writable, invalid filter args or `--mod-code`, invalid `--tag` condition (tag name not two characters, empty value) or a non-numeric value compared against an integer-typed tag |
 
 ## Examples
 
@@ -137,6 +138,9 @@ poremod pileup --input in.bam --output sites.tsv --reference ref.fa --mod-code m
 
 # 6mA + context: succeeds; a rows have context -
 poremod pileup --input in.bam --output sites.tsv --reference ref.fa --mod-code a --context
+
+# only haplotype 1 reads; repeat --tag for same-key OR / cross-key AND
+poremod pileup --input in.bam --output sites.tsv --reference ref.fa --tag HP:1
 ```
 
 ## Notes
@@ -150,4 +154,5 @@ poremod pileup --input in.bam --output sites.tsv --reference ref.fa --mod-code a
 - `--context --mod-code a` does not error; A sites are written with `context` = `-`.
 - Context annotation needs the reference `.fai` (generated automatically by the command, no manual preparation); the reference FASTA and its `.fai` must stay consistent.
 - Annotation loads reference sequence lazily per contig; memory usage in whole-genome runs is roughly the total length of the contigs touched.
+- `--tag` is a read-level selection: a read contributes no site unless every distinct `KEY` has at least one matching value. The check runs before MM/ML parsing, so a malformed MM/ML tag on an excluded read is not an error. Excluded reads also leave the `--filter-percentile` estimation population, keeping the threshold and the counted reads on the same set. `--tag` is not exposed by `extract` or `summarize`; the library-level `Filter(tags=...)` still applies to the per-read path.
 - A `--output` path ending in exactly `.gz` is written as gzip (compression level 6, matching `gzip(1)`). The gzip header carries no timestamp and no original filename, so the same input and arguments write byte-identical `.gz` files across runs. Decompressed, the content is byte-identical to the same run without the `.gz` suffix. The suffix is matched exactly: `.GZ`, `.bgz` and any other spelling still write plain text. Failure semantics are unchanged: an unwritable `.gz` path exits 2 and leaves no file, and an empty result is still a valid gzip stream holding only the header line.
