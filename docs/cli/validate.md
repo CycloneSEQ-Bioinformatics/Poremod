@@ -40,7 +40,7 @@ Layers are keyed by the object each one validates: which modification tags exist
 
 ### `mm_grammar` — whether the MM string parses
 
-The raw MM string is scanned against the SAMtags §1.7 grammar `[ACGTUN][-+]([a-z]+|[0-9]+)[.?]?(,[0-9]+)*;`. Every violation in the string is collected, not just the first. A reason that quotes the offending text abbreviates it the same way the `ml` layer does: text longer than 40 characters is cut at a comma and closed with `...`.
+The raw MM string is scanned against the SAMtags §1.7 grammar `([ACGTUN][-+]([a-z]+|[0-9]+)[.?]?(,[0-9]+)*;)*`. Every violation in the string is collected, not just the first. The outer `(...)*` admits zero repetitions, so an empty MM value (`MM:Z:`) is legal: it declares no modification calls, and an empty `ML:B:C` array matches it. A lone `;` (`MM:Z:;`) is one empty segment and is still reported. A reason that quotes the offending text abbreviates it the same way the `ml` layer does: text longer than 40 characters is cut at a comma and closed with `...`.
 
 | check_id | severity | anomaly_type | Fires when |
 |----------|----------|--------------|------------|
